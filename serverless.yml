@@ -22,7 +22,7 @@ frameworkVersion: "3"
 
 provider:
   name: aws
-  runtime: nodejs18.x
+  runtime: nodejs16.x
 
 # you can overwrite defaults here
   stage: dev
@@ -68,6 +68,9 @@ functions:
       - httpApi:
           path: /products
           method: get
+    environment:
+      PRODUCTS_TABLE: Products
+      STOCKS_TABLE: Stocks
 #      - websocket: $connect
 #      - s3: ${env:BUCKET}
 #      - schedule: rate(10 minutes)
@@ -103,19 +106,22 @@ functions:
       - httpApi:
           path: /products/{productId}
           method: get
+    environment:
+      PRODUCTS_TABLE: Products
+      STOCKS_TABLE: Stocks
+
+  createProduct:
+    handler: handler.createProduct
+    events:
+      - http:
+          path: /products
+          method: POST
+    environment:
+      PRODUCTS_TABLE: Products
+      STOCKS_TABLE: Stocks
 
 #    Define function environment variables here
 #    environment:
 #      variable2: value2
 
 # you can add CloudFormation resource templates here
-#resources:
-#  Resources:
-#    NewResource:
-#      Type: AWS::S3::Bucket
-#      Properties:
-#        BucketName: my-new-bucket
-#  Outputs:
-#     NewOutput:
-#       Description: "Description for the output"
-#       Value: "Some output value"
