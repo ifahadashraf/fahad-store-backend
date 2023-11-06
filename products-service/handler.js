@@ -4,6 +4,9 @@ const AWS = require('aws-sdk');
 const { randomUUID } = require('crypto');
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient({ region: 'eu-west-1' });
+const sns = new AWS.SNS();
+
+const snsTopicArn = 'arn:aws:sns:eu-north-1:861385611523:products-service-dev-CreateProductTopic-uBxgjBpgBDhR';
 
 module.exports = {
   getProductsList:  async () => {
@@ -145,6 +148,55 @@ module.exports = {
         statusCode: 500,
         body: JSON.stringify({ message: 'Error creating product', error: error.message }),
       };
+    }
+  },
+
+  catalogBatchProcess: async (event) => {
+    try {
+      const products = []; // An array to store product objects
+
+      for (const record of event.Records) {
+        const body = JSON.parse(record.body);
+        const product = body.product; // Assuming the product data is stored in the "product" field
+
+        // Construct the product object
+        const productItem = {
+          id: randomUUID(),
+          title: product.name,
+          description: product.description,
+          price: product.price
+        };
+
+        // Define the DynamoDB parameters for putting the product
+        const putParams = {
+          TableName: process.env.PRODUCTS_TABLE,
+          Item: productItem
+        };
+
+        // Put the product item in DynamoDB
+        await dynamoDB.put(putParams).promise();
+
+        // Push the product object to the products array
+        products.push(productItem);
+      }
+
+      // Create a message to send to the SNS topic
+      const message = {
+        default: 'New product(s) created.',
+        email: 'New product(s) have been created and added to the catalog.',
+        products: products // Include the created products
+      };
+
+      const snsParams = {
+        Message: JSON.stringify(message),
+        Subject: 'New Products Created',
+        TopicArn: snsTopicArn
+      };
+
+      // Publish the message to the SNS topic
+      await sns.publish(snsParams).promise();
+    } catch (error) {
+      console.error('Error processing products:', error);
     }
   }
 };
