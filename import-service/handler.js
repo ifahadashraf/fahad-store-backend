@@ -3,6 +3,7 @@
 const AWS = require('aws-sdk');
 const csv = require('csv-parser');
 const s3 = new AWS.S3();
+const sqs = new AWS.SQS();
 
 module.exports = {
     importProductsFile:  async (event) => {
@@ -69,8 +70,12 @@ module.exports = {
                     stream.end();
                 });
 
+                // Send each parsed record to an SQS queue
                 for (const record of parsedRecords) {
-                    console.log('Parsed Record:', record);
+                    await sqs.sendMessage({
+                        QueueUrl: 'https://sqs.eu-north-1.amazonaws.com/861385611523/catalogItemsQueue',
+                        MessageBody: JSON.stringify({ product: record }),
+                    }).promise();
                 }
             } catch (error) {
                 console.error('Error processing S3 object:', error);
