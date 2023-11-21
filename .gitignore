@@ -5,4 +5,6 @@ jspm_packages
 # Serverless directories
 products-service/.serverless
 import-service/.serverless
+authorization-service/.serverless
+authorization-service/.env
 .idea
